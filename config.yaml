@@ -1,0 +1,14 @@
+name: "Powermon"
+description: "Take control of your power with the mon"
+version: "0.0.4"
+slug: "powermon"
+init: false
+arch:
+  - aarch64
+  - amd64
+  - armhf
+  - armv7
+  - i386
+startup: before
+ingress: true
+homeassistant_api: true
