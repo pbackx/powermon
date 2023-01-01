@@ -2,6 +2,7 @@ name: "Powermon"
 description: "Take control of your power with the mon"
 version: "0.0.4"
 slug: "powermon"
+url: https://github.com/pbackx/powermon
 init: false
 arch:
   - aarch64
