@@ -14,7 +14,6 @@ COPY powermon-frontend/build /frontend
 WORKDIR /backend
 COPY powermon-backend /backend
 RUN pip3 install --no-cache-dir -r requirements.txt
-RUN pip3 install waitress==2.1.2
 
 WORKDIR /
 COPY run.sh /

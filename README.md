@@ -18,15 +18,26 @@ While this works, it is not a very optimal or convenient way to develop.
 It is easier to run both the Flask development server and the Create-React-App development server on the
 machine you do your development on and connect it to your Home Assistant installation.
 
-### Flask
+### Python Sanic backend
 
 1. Create a new Python virtual environment.
 2. Activate the environment.
 3. `cd powermon-backend`
-4. Install the requirements with `pip install -r requirements.txt`.
-5. Run the Flask development server with `flask --app powermon run`.
+4. Create a .env file with the following contents:
 
-### React
+   ```
+   CORS_ORIGINS=http://localhost:3000
+   SUPERVISOR_TOKEN=<your Home Assistant Supervisor token>
+   WEBSOCKET_URL=ws://homeassistant.local:8123/api/websocket
+   ```
+
+5. Install the requirements with `pip install -r requirements.txt`.
+6. Run the Flask development server with `sanic powermon.app`.
+
+The supervisor token is a long-lived access token that you can create on your Home Assistant profile page,
+by default this is at the bottom of the following page: http://homeassistant.local:8123/profile.
+
+### React frontend
 
 1. Install Node.js and NPM (current development is done using 19.2.0 and 8.19.3, but a wide range of versions should work).
 2. `cd powermon-frontend`
