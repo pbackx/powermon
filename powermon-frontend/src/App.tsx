@@ -1,18 +1,36 @@
 import React, {useEffect, useState} from 'react';
 import logo from './logo.svg';
 import './App.css';
+import useWebSocket, {ReadyState} from 'react-use-websocket';
+
+function getWebsocketUrl(url: string) {
+  return url.replace(/^http/, "ws") + "ws"
+}
 
 function App() {
-  const [message, setMessage] = useState("loading...");
+  const [message, setMessage] = useState("loading...")
 
-  console.log(process.env.REACT_APP_API_URL)
+  const { sendMessage, lastMessage, readyState } = useWebSocket(getWebsocketUrl(process.env.REACT_APP_API_URL || ""))
+  useEffect(() => {
+    if (lastMessage !== null) {
+      console.log(JSON.parse(lastMessage.data))
+    }
+  }, [lastMessage])
 
   useEffect(() => {
     window.fetch(process.env.REACT_APP_API_URL || "")
         .then(response => response.json())
-        .then(data => setMessage(data.message));
+        .then(data => setMessage(data.message))
     // note: don't forget about error handling, see example on https://reactjs.org/docs/faq-ajax.html
-  });
+  }, [setMessage])
+
+  const connectionStatus = {
+    [ReadyState.CONNECTING]: 'Connecting',
+    [ReadyState.OPEN]: 'Open',
+    [ReadyState.CLOSING]: 'Closing',
+    [ReadyState.CLOSED]: 'Closed',
+    [ReadyState.UNINSTANTIATED]: 'Uninstantiated',
+  }[readyState]
 
   return (
     <div className="App">
@@ -21,17 +39,12 @@ function App() {
         <p>
           {message}
         </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
+        <p>
+            WS connection status: {connectionStatus}
+        </p>
       </header>
     </div>
   );
 }
 
-export default App;
+export default App

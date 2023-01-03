@@ -1,7 +1,7 @@
 from dotenv import load_dotenv
 import json
 import os
-from sanic import Sanic
+from sanic import Request, Sanic, Websocket
 from sanic_ext import Extend
 from sanic.log import logger
 from sanic.response import json as sanic_json
@@ -22,8 +22,22 @@ websocket_url = os.environ.get('WEBSOCKET_URL', 'ws://supervisor/core/api/websoc
 
 
 @app.get("/")
-def hello_world(request):
+async def hello_world(request: Request):
     return sanic_json({"message": "Hello, World!"})
+
+
+websocket_connections : list[Websocket] = []
+
+
+@app.websocket("/ws")
+async def websocket_handler(request: Request, ws: Websocket):
+    websocket_connections.append(ws)
+    # Note that this loop needs to be here to keep the connection alive.
+    # Otherwise, it is closed when the function returns.
+    # We may use this in the future for two-way communication.
+    while True:
+        data = await ws.recv()
+        logger.info(f'WS: {data}')
 
 
 async def homeassistant_connection():
@@ -50,6 +64,12 @@ async def homeassistant_connection():
                         if rdata["entity_id"] == "sensor.power_consumption":
                             logger.info(
                                 f'HA WS: [{rdata["new_state"]["last_changed"]}] {rdata["new_state"]["state"]}{rdata["new_state"]["attributes"]["unit_of_measurement"]}')
+                            for ws in websocket_connections:
+                                try:
+                                    await ws.send(json.dumps(rdata["new_state"]))
+                                except Exception as e:
+                                    logger.error(f'Error sending to websocket: {e}')
+                                    websocket_connections.remove(ws)
                             # to test: check if firing an event for a nonexisting entity creates the entity
                             # https://developers.home-assistant.io/docs/api/websocket#fire-an-event
             else:
