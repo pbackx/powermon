@@ -43,7 +43,6 @@ function App() {
     [ReadyState.CLOSED]: 'Closed',
     [ReadyState.UNINSTANTIATED]: 'Uninstantiated',
   }[readyState]
-  console.log(connectionStatus)
 
   return (
     <div className="App">
