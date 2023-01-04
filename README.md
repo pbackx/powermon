@@ -45,3 +45,14 @@ by default this is at the bottom of the following page: http://homeassistant.loc
 4. `npm run start`.
 
 A browser window should open with the React development server running. If not, you can access it at `http://localhost:3000`.
+
+### Building and running the Docker image locally
+
+Home Assistant sets the BUILD_FROM environment variable when building the Docker image, so you must specify it:
+
+   docker build -t powermon:local --build-arg BUILD_FROM="homeassistant/amd64-base:latest" .
+   docker run --rm -p 8099:8099 powermon:local
+
+TODO: how come the websocket connection to homeassistant.local works? it should be ignoring .env?
+
+   

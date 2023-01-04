@@ -4,7 +4,19 @@ import './App.css';
 import useWebSocket, {ReadyState} from 'react-use-websocket';
 
 function getWebsocketUrl(url: string) {
-  return url.replace(/^http/, "ws") + "ws"
+  let websocketUrl
+  if (url.startsWith("http://")) {
+    websocketUrl = url.replace(/^http/, "ws")
+  } else {
+    const l = window.location
+    websocketUrl = "ws://" + l.host + l.pathname + url.replace(/^\.\//, "")
+  }
+
+  if (websocketUrl.endsWith("/")) {
+    return websocketUrl + "ws"
+  } else {
+    return websocketUrl + "/ws"
+  }
 }
 
 function App() {
@@ -31,6 +43,7 @@ function App() {
     [ReadyState.CLOSED]: 'Closed',
     [ReadyState.UNINSTANTIATED]: 'Uninstantiated',
   }[readyState]
+  console.log(connectionStatus)
 
   return (
     <div className="App">
