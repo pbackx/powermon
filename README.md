@@ -51,8 +51,5 @@ A browser window should open with the React development server running. If not, 
 Home Assistant sets the BUILD_FROM environment variable when building the Docker image, so you must specify it:
 
    docker build -t powermon:local --build-arg BUILD_FROM="homeassistant/amd64-base:latest" .
-   docker run --rm -p 8099:8099 powermon:local
-
-TODO: how come the websocket connection to homeassistant.local works? it should be ignoring .env?
-
-   
+   docker run --rm -p 8099:8099 --env-file powermon-backend/.env powermon:local
+ 
