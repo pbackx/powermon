@@ -18,7 +18,7 @@ While this works, it is not a very optimal or convenient way to develop.
 It is easier to run both the Flask development server and the Create-React-App development server on the
 machine you do your development on and connect it to your Home Assistant installation.
 
-### Python Sanic backend
+### Python aiohttp backend
 
 1. Create a new Python virtual environment.
 2. Activate the environment.
@@ -32,7 +32,7 @@ machine you do your development on and connect it to your Home Assistant install
    ```
 
 5. Install the requirements with `pip install -r requirements.txt`.
-6. Run the Flask development server with `sanic powermon.app`.
+6. Run the aio HTTP server with `python powermon.py`.
 
 The supervisor token is a long-lived access token that you can create on your Home Assistant profile page,
 by default this is at the bottom of the following page: http://homeassistant.local:8123/profile.
