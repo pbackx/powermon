@@ -15,9 +15,53 @@ if token is None:
 
 websocket_url = os.environ.get('WEBSOCKET_URL', 'ws://supervisor/core/api/websocket')
 
+power_sensor = os.environ.get('POWER_SENSOR')
+if power_sensor is None:
+    raise ValueError('POWER_SENSOR environment variable not set')
+
+# TODO list
+# 1. externalize the homeassistant.local url in load_power_sensors
+
+# 2. Complete update_power_sensor method to actually update the value and store it in the config.
+# Store this choice in configuration if possible. Probably best to create a simple form field and test it
+# This should work by POSTing to /addons/self/options endpoint with payload looking as follows:
+# {
+#   "options": {
+#     "power_sensor": "sensor.power_consumption"
+#   }
+# }
+# This does not work from outside of the add-on, so it may be difficult to test.
+
+# 3. styling everything
+# Maybe try Foundation to test out alternatives to Bootstrap?
+# https://get.foundation/sites/docs/installation.html
+# https://github.com/digiaonline/react-foundation
 
 async def hello_world(request):
     return web.json_response({"message": "Hello, World!"})
+
+
+async def get_power_sensor(request):
+    return web.json_response({"selected_sensor": power_sensor})
+
+
+async def update_power_sensor(request):
+    data = await request.json()
+    new_sensor = data['selected_sensor']
+    logging.info(f'Updating power sensor to {new_sensor}')
+    return web.json_response({"selected_sensor": power_sensor})
+
+
+async def load_power_sensors(request):
+    headers = {'Authorization': f'Bearer {token}'}
+    async with aiohttp.ClientSession(headers=headers) as session:
+        async with session.get(f'http://homeassistant.local:8123/api/states') as resp:
+            print(resp.status)
+            sensors = await resp.json()
+            power_sensors = [sensor for sensor in sensors if
+                             sensor['attributes'].get('device_class') is not None
+                             and sensor['attributes']['device_class'] == 'power']
+            return web.json_response(power_sensors)
 
 
 async def websocket_handler(request):
@@ -62,7 +106,7 @@ async def homeassistant_listener(app):
                             logging.info("HA WS: subscription result: {}".format(rjson["success"]))
                         elif rtype == "event":
                             rdata = rjson["event"]["data"]
-                            if rdata["entity_id"] == "sensor.power_consumption":
+                            if rdata["entity_id"] == power_sensor:
                                 logging.info(
                                     f'HA WS: [{rdata["new_state"]["last_changed"]}] {rdata["new_state"]["state"]}{rdata["new_state"]["attributes"]["unit_of_measurement"]}')
                                 for ws in app['websockets']:
@@ -94,6 +138,9 @@ def init_func():
     app = web.Application(middlewares=middlewares)
     app.add_routes([
         web.get('/', hello_world),
+        web.get('/sensor', get_power_sensor),
+        web.post('/sensor', update_power_sensor),
+        web.get('/sensor/list', load_power_sensors),
         web.get('/ws', websocket_handler)
     ])
 

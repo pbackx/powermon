@@ -13,3 +13,7 @@ arch:
 startup: before
 ingress: true
 homeassistant_api: true
+options:
+  power_sensor: "sensor.power_consumption"
+schema:
+  power_sensor: str

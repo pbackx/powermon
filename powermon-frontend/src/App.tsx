@@ -12,6 +12,7 @@ import {
     Legend,
 } from 'chart.js';
 import {Line} from 'react-chartjs-2';
+import PowerSensorSelect from "./PowerSensorSelect";
 
 function getWebsocketUrl(url: string) {
     let websocketUrl
@@ -53,10 +54,10 @@ function App() {
             const time_formatted = new Date(msg.last_updated).toLocaleTimeString()
             const value = parseFloat(msg.state)
 
-            setLabels([...labels, time_formatted])
-            setPowerConsumption([...powerConsumption, value])
+            setLabels(labels => [...labels, time_formatted])
+            setPowerConsumption(powerConsumption => [...powerConsumption, value])
         }
-    }, [lastMessage])
+    }, [lastMessage, setLabels, setPowerConsumption])
 
     useEffect(() => {
         window.fetch(process.env.REACT_APP_API_URL || "")
@@ -94,6 +95,7 @@ function App() {
                 <p>
                     WS connection status: {connectionStatus}
                 </p>
+                <PowerSensorSelect/>
             </header>
             <Line data={data}/>
         </div>
