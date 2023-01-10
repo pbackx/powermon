@@ -12,30 +12,16 @@ load_dotenv()
 token = os.environ.get('SUPERVISOR_TOKEN')
 if token is None:
     raise ValueError('SUPERVISOR_TOKEN environment variable not set')
+headers = {'Authorization': f'Bearer {token}'}
 
 websocket_url = os.environ.get('WEBSOCKET_URL', 'ws://supervisor/core/api/websocket')
+ha_core_api_url = os.environ.get('HA_CORE_API_URL', 'http://supervisor/core/api')
+supervisor_api_url = 'http://supervisor'
 
 power_sensor = os.environ.get('POWER_SENSOR')
 if power_sensor is None:
     raise ValueError('POWER_SENSOR environment variable not set')
 
-# TODO list
-# 1. externalize the homeassistant.local url in load_power_sensors
-
-# 2. Complete update_power_sensor method to actually update the value and store it in the config.
-# Store this choice in configuration if possible. Probably best to create a simple form field and test it
-# This should work by POSTing to /addons/self/options endpoint with payload looking as follows:
-# {
-#   "options": {
-#     "power_sensor": "sensor.power_consumption"
-#   }
-# }
-# This does not work from outside of the add-on, so it may be difficult to test.
-
-# 3. styling everything
-# Maybe try Foundation to test out alternatives to Bootstrap?
-# https://get.foundation/sites/docs/installation.html
-# https://github.com/digiaonline/react-foundation
 
 async def hello_world(request):
     return web.json_response({"message": "Hello, World!"})
@@ -46,17 +32,25 @@ async def get_power_sensor(request):
 
 
 async def update_power_sensor(request):
+    global power_sensor
     data = await request.json()
     new_sensor = data['selected_sensor']
     logging.info(f'Updating power sensor to {new_sensor}')
-    return web.json_response({"selected_sensor": power_sensor})
+    async with aiohttp.ClientSession(headers=headers) as session:
+        async with session.post(f'{supervisor_api_url}/addons/self/options',
+                                json={"options": {"power_sensor": new_sensor}}) as resp:
+            if resp.status == 200:
+                logging.info(f'Power sensor updated to {new_sensor}')
+                power_sensor = new_sensor
+                return web.json_response({"selected_sensor": new_sensor})
+            else:
+                logging.error(f'Error updating power sensor: {resp.status}, {await resp.text()}')
+                return web.json_response({"selected_sensor": power_sensor})
 
 
 async def load_power_sensors(request):
-    headers = {'Authorization': f'Bearer {token}'}
     async with aiohttp.ClientSession(headers=headers) as session:
-        async with session.get(f'http://homeassistant.local:8123/api/states') as resp:
-            print(resp.status)
+        async with session.get(f'{ha_core_api_url}/states') as resp:
             sensors = await resp.json()
             power_sensors = [sensor for sensor in sensors if
                              sensor['attributes'].get('device_class') is not None
