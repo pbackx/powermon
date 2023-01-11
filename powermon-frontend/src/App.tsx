@@ -1,6 +1,6 @@
 import React, {useEffect, useState} from 'react';
 import './App.css';
-import useWebSocket, {ReadyState} from 'react-use-websocket';
+import useWebSocket from 'react-use-websocket';
 import {
     Chart as ChartJS,
     CategoryScale,
@@ -41,7 +41,6 @@ ChartJS.register(
 );
 
 function App() {
-    const [message, setMessage] = useState("loading...")
     const [labels, setLabels] = useState<string[]>([])
     const [powerConsumption, setPowerConsumption] = useState<number[]>([])
 
@@ -59,26 +58,11 @@ function App() {
         }
     }, [lastMessage, setLabels, setPowerConsumption])
 
-    useEffect(() => {
-        window.fetch(process.env.REACT_APP_API_URL || "")
-            .then(response => response.json())
-            .then(data => setMessage(data.message))
-            .catch(error => setMessage(`Error: ${error}`))
-    }, [setMessage])
-
-    const connectionStatus = {
-        [ReadyState.CONNECTING]: 'Connecting',
-        [ReadyState.OPEN]: 'Open',
-        [ReadyState.CLOSING]: 'Closing',
-        [ReadyState.CLOSED]: 'Closed',
-        [ReadyState.UNINSTANTIATED]: 'Uninstantiated',
-    }[readyState]
-
     const data = {
         labels: labels,
         datasets: [
             {
-                label: 'Power consumption',
+                label: 'Energie verbruik',
                 data: powerConsumption,
                 borderColor: 'rgba(68, 115, 158, 1)',
                 backgroundColor: 'rgba(68, 115, 158, 0.5)',
@@ -87,17 +71,28 @@ function App() {
     }
 
     return (
-        <div className="App">
-            <header className="App-header">
+        <div className="grid-x grid-padding-x grid-padding-y">
+            <div className="medium-6 cell">
+                <h1>Powermon</h1>
                 <p>
-                    {message}
+                    Rechts kan je je verbruik zien. Hiervoor gebruiken we een sensor in Home Assistant die het
+                    vermogen meet dat je op dit ogenblik gebruikt.
                 </p>
                 <p>
-                    WS connection status: {connectionStatus}
+                    Je kan deze sensor hieronder kiezen. Een ideale sensor is
+                    de <a href="https://www.home-assistant.io/integrations/dsmr/">integratie met de slimme meter</a>.
+                    Dit is het exacte cijfer dat ook gebruikt wordt voor de berekening van je factuur.
+                </p>
+                <p>
+                    Selecteer hieronder de juiste sensor. Je ziet hier enkel vermogensensoren in (kilo)watt, omdat deze
+                    sensoren het vermogen meten. Andere sensoren meten je totale verbruik in (kilo)wattuur. Deze kunnen
+                    niet rechtstreeks gebruikt worden om je piekverbruik te berekenen.
                 </p>
                 <PowerSensorSelect/>
-            </header>
-            <Line data={data}/>
+            </div>
+            <div className="medium-6 cell">
+                <Line data={data}/>
+            </div>
         </div>
     );
 }

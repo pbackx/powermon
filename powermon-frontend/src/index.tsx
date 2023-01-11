@@ -4,6 +4,16 @@ import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 
+import 'foundation-sites/dist/css/foundation.min.css';
+
+declare global {
+    interface Window {
+        jQuery: typeof jQuery;
+        $: typeof jQuery;
+    }
+}
+require('foundation-sites');
+
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
 );

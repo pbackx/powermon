@@ -10,6 +10,7 @@ interface Sensor {
 function PowerSensorSelect() {
     const [selectedSensor, setSelectedSensor] = useState<string | undefined>(undefined)
     const [sensors, setSensors] = useState<Sensor[]>([])
+    const [disabled, setDisabled] = useState<boolean>(false)
 
     useEffect(() => {
         window.fetch((process.env.REACT_APP_API_URL || "") + "sensor")
@@ -22,6 +23,7 @@ function PowerSensorSelect() {
     }, [setSensors, setSelectedSensor])
 
     function selectNewSensor(event: React.ChangeEvent<HTMLSelectElement>) {
+        setDisabled(true)
         const newSelectedSensor= event.currentTarget.value
         fetch((process.env.REACT_APP_API_URL || "") + "sensor", {
             method: "POST",
@@ -30,10 +32,14 @@ function PowerSensorSelect() {
             .then(response => response.json())
             .then(console.log)
             .catch(error => console.log(`Error: ${error}`))
+            .finally(() => setDisabled(false))
     }
 
     return (
-            <select value={selectedSensor} onChange={selectNewSensor}>
+            <select value={selectedSensor}
+                    onChange={selectNewSensor}
+                    disabled={disabled}
+            >
             {sensors.map(sensor =>
                 <option
                     key={sensor.entity_id}

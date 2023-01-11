@@ -36,16 +36,20 @@ async def update_power_sensor(request):
     data = await request.json()
     new_sensor = data['selected_sensor']
     logging.info(f'Updating power sensor to {new_sensor}')
-    async with aiohttp.ClientSession(headers=headers) as session:
-        async with session.post(f'{supervisor_api_url}/addons/self/options',
-                                json={"options": {"power_sensor": new_sensor}}) as resp:
-            if resp.status == 200:
-                logging.info(f'Power sensor updated to {new_sensor}')
-                power_sensor = new_sensor
-                return web.json_response({"selected_sensor": new_sensor})
-            else:
-                logging.error(f'Error updating power sensor: {resp.status}, {await resp.text()}')
-                return web.json_response({"selected_sensor": power_sensor})
+    try:
+        async with aiohttp.ClientSession(headers=headers) as session:
+            async with session.post(f'{supervisor_api_url}/addons/self/options',
+                                    json={"options": {"power_sensor": new_sensor}}) as resp:
+                if resp.status == 200:
+                    logging.info(f'Power sensor updated to {new_sensor}')
+                    power_sensor = new_sensor
+                    return web.json_response({"selected_sensor": new_sensor})
+                else:
+                    logging.error(f'Error updating power sensor: {resp.status}, {await resp.text()}')
+                    return web.json_response({"selected_sensor": power_sensor})
+    except aiohttp.ClientConnectionError as e:
+        logging.error(f'Error updating power sensor: {e}')
+        return web.json_response({"selected_sensor": power_sensor}, status=400)
 
 
 async def load_power_sensors(request):
