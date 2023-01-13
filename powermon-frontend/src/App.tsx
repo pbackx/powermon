@@ -93,6 +93,65 @@ function App() {
             <div className="medium-6 cell">
                 <Line data={data}/>
             </div>
+            <div className="medium-8 cell">
+                <p>TODO add graph</p>
+            </div>
+            <div className="medium-4 cell">
+                <p>
+                    Op de volgende grafiek zie je jouw kwartiervermogen. Dat is het gemiddelde verbruik dat je tijdens
+                    het kwartier hebt gehad.
+                </p>
+                <p>
+                    Heb je bijvoorbeeld een kwartier lang een toestel van 1000W gebruikt, dan zal het kwartiervermogen
+                    1000W zijn. Heb je 5 minuten lang een toestel van 1000W gebruikt en daarna totaal niks meer, dan
+                    zal het vermogen 1000/3 of ongeveer 333W zijn.
+                </p>
+            </div>
+            <div className="medium-4 cell">
+                <p>
+                    Vervolgens bepalen we op basis van dit kwartiervermogen je maandpiek. Dat is het grootste
+                    kwartiervermogen dat je tijdens een maand hebt gehad.
+                </p>
+            </div>
+            <div className="medium-8 cell">
+                <p>TODO add graph</p>
+            </div>
+            <div className="medium-6 cell">
+                <p>TODO add graph</p>
+            </div>
+            <div className="medium-6 cell">
+                <p>
+                    De laatste stap is op basis van de voorbije twaalf maandpieken je piekvermogen voor het jaar te
+                    berekenen. Dit is het gemiddelde van de twaalf maandpieken.
+                </p>
+                <p>
+                    Een onderdeel van je elektriciteitsfactuur zal afhankelijk zijn van dit piekvermogen. Hoe hoger dit
+                    is is, hoe meer. Dit is sterk afhankelijk van je situatie en je kan dit best simuleren, maar een
+                    richtprijs is dat je per kW extra piek ongeveer 40 euro per jaar extra betaalt.
+                </p>
+                <p>
+                    TODO: aanvullen met extra gegevens en een aantal simulaties.
+                </p>
+            </div>
+            <div className="medium-12 cell">
+                <h2>Begrippenlijst en verdere uitleg</h2>
+                <dl>
+                    <dt>Vermogen versus verbruik</dt>
+                    <dd>Het is heel eenvoudig om deze beide begrippen te verwarren. Het vermogen dat je op toestellen vindt
+                    is steeds aangeduid in watt (W) of kilowatt (kW = 1000 W). Het duidt aan hoeveel energie een toestel maximaal
+                    per seconde zal gebruiken. Het verbruik is hoeveel energie een toestel tijdens een bepaalde periode
+                    heeft gebruikt. Bijvoorbeeld, staat je microgolf die 1000W verbruik 15 minuten aan, dan zal die
+                    dat uur 1000W x 15min / 60min/uur = 250Wh verbruikt hebben. Het grootste deel van je elektriciteitsrekening
+                    is afhankelijk van je verbruik. Het capaciteitstarief voegt nu ook een onderdeel toe waarbij je moet
+                    betalen voor het maximale vermogen dat je verbruikt.</dd>
+                    <dt>Bronnen</dt>
+                    <dd>Voor het opstellen van deze pagina werden de volgende bronnen gebruikt:
+                        <ul>
+                            <li><a href="https://www.vreg.be/nl/faq/nieuwe-nettarieven-2023">Vragenlijst nieuwe nettarieven VREG</a></li>
+                        </ul>
+                    </dd>
+                </dl>
+            </div>
         </div>
     );
 }
