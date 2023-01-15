@@ -8,7 +8,8 @@ import aiohttp
 from aiohttp_middlewares import cors_middleware
 from dotenv import load_dotenv
 
-from powermondatabase import PowermonDatabase
+from powermon.database import PowermonDatabase
+from powermon.model import PowerReading
 
 load_dotenv()
 token = os.environ.get('SUPERVISOR_TOKEN')
@@ -108,11 +109,12 @@ async def homeassistant_listener(app):
                         elif rtype == "event":
                             rdata = rjson["event"]["data"]
                             if rdata["entity_id"] == power_sensor:
-                                logging.info(
-                                    f'HA WS: [{rdata["new_state"]["last_changed"]}] {rdata["new_state"]["state"]}{rdata["new_state"]["attributes"]["unit_of_measurement"]}')
-                                # TODO use actual last_changed timestamp instead of current time, there could be delays in sending this information
-                                # TODO convert to W for uniformity .. going by the following documentation HA only supports W and kW so this should be easy to do https://developers.home-assistant.io/docs/core/entity/sensor/
-                                database.insert_power_reading(rdata["new_state"]["state"])
+                                reading = PowerReading(
+                                    rdata["new_state"]["state"],
+                                    rdata["new_state"]["last_changed"],
+                                    rdata["new_state"]["attributes"]["unit_of_measurement"])
+                                logging.info(f'HA WS: {reading}')
+                                database.insert_power_reading(reading)
                                 for ws in app['websockets']:
                                     try:
                                         await ws.send_json(rdata["new_state"])
