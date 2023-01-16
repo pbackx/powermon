@@ -48,10 +48,10 @@ function App() {
     useEffect(() => {
         if (lastMessage !== null) {
             const msg = JSON.parse(lastMessage.data)
-            console.log(`${msg.entity_id} ${msg.state}${msg.attributes.unit_of_measurement}`)
+            console.log(`${msg.power}W at ${msg.timestamp}`)
 
-            const time_formatted = new Date(msg.last_updated).toLocaleTimeString()
-            const value = parseFloat(msg.state)
+            const time_formatted = new Date(msg.timestamp).toLocaleTimeString()
+            const value = msg.power
 
             setLabels(labels => [...labels, time_formatted])
             setPowerConsumption(powerConsumption => [...powerConsumption, value])

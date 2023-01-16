@@ -17,3 +17,9 @@ class PowerReading:
 
     def __str__(self):
         return f'[{self.timestamp}] {self.power}W'
+
+    def to_json(self):
+        return {
+            'timestamp': self.timestamp.isoformat(),
+            'power': self.power
+        }

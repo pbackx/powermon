@@ -2,6 +2,7 @@ import asyncio
 import json
 import logging
 import os
+from datetime import datetime, timedelta, timezone
 
 from aiohttp import web
 import aiohttp
@@ -26,6 +27,8 @@ if power_sensor is None:
     raise ValueError('POWER_SENSOR environment variable not set')
 
 database = PowermonDatabase(os.environ.get('DATABASE_FILE', '/data/powermon.db'))
+local_timezone = datetime.now(timezone.utc).astimezone().tzinfo
+
 
 async def hello_world(request):
     return web.json_response({"message": "Hello, World!"})
@@ -66,10 +69,20 @@ async def load_power_sensors(request):
             return web.json_response(power_sensors)
 
 
+async def delete_database(request):
+    database.delete_data()
+    return web.json_response({"message": "Database deleted"})
+
+
 async def websocket_handler(request):
     ws = web.WebSocketResponse()
     await ws.prepare(request)
     request.app['websockets'].append(ws)
+
+    readings = database.get_power_readings(datetime.now(local_timezone) - timedelta(hours=1),
+                                           datetime.now(local_timezone))
+    for reading in readings:
+        await ws.send_json(reading.to_json())
 
     async for msg in ws:
         if msg.type == aiohttp.WSMsgType.TEXT:
@@ -117,7 +130,7 @@ async def homeassistant_listener(app):
                                 database.insert_power_reading(reading)
                                 for ws in app['websockets']:
                                     try:
-                                        await ws.send_json(rdata["new_state"])
+                                        await ws.send_json(reading.to_json())
                                     except Exception as e:
                                         logging.error(f'Error sending to websocket: {e}')
                                         app['websockets'].remove(ws)
@@ -147,6 +160,7 @@ def init_func():
         web.get('/sensor', get_power_sensor),
         web.post('/sensor', update_power_sensor),
         web.get('/sensor/list', load_power_sensors),
+        web.delete('/database', delete_database),
         web.get('/ws', websocket_handler)
     ])
 

@@ -2,10 +2,8 @@
 
 This is a list where I document simple tasks that are easy to pick up and get going:
 
-1. Create script to start a SQLlite database and create a table for storing power data
-2. Set up debug access so I can manipulate (=delete) the database if I need to https://developers.home-assistant.io/docs/operating-system/debugging/
-3. Store power data in the database
-4. Return stored data when powermon page is loaded
+1. Figure out timezone issue. Database timestamps have incorrect timezone information. 
+2. Return stored data when powermon page is loaded
 
 
 # Doing
