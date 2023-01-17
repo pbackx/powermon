@@ -48,7 +48,6 @@ function App() {
     useEffect(() => {
         if (lastMessage !== null) {
             const msg = JSON.parse(lastMessage.data)
-            console.log(`${msg.power}W at ${msg.timestamp}`)
 
             const time_formatted = new Date(msg.timestamp).toLocaleTimeString()
             const value = msg.power

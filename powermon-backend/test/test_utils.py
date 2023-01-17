@@ -1,6 +1,6 @@
 import unittest
 from datetime import datetime
-from powermon.utils import round_down_quarter
+from powermon.utils import round_down_quarter, beginning_of_month
 
 
 class ToolsTest(unittest.TestCase):
@@ -16,6 +16,11 @@ class ToolsTest(unittest.TestCase):
         self.assertEqual(round_down_quarter(datetime(2023, 1, 1, 1, 16, 1)).hour, 1)
 
         self.assertEqual(round_down_quarter(datetime(2023, 1, 1, 0, 59, 0)).minute, 45)
+
+    def test_beginning_of_month(self):
+        self.assertEqual(beginning_of_month(datetime(2023, 10, 1, 0, 0, 0)).day, 1)
+        self.assertEqual(beginning_of_month(datetime(2023, 10, 1, 0, 0, 0)).month, 10)
+        self.assertEqual(beginning_of_month(datetime(2023, 10, 1, 0, 0, 0)).year, 2023)
 
 
 if __name__ == '__main__':
