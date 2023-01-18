@@ -40,29 +40,83 @@ ChartJS.register(
     Legend
 );
 
-function App() {
-    const [labels, setLabels] = useState<string[]>([])
-    const [powerConsumption, setPowerConsumption] = useState<number[]>([])
+interface PowerValue {
+    timestamp: Date,
+    power: number,
+    type: string,
+}
 
-    const {sendMessage, lastMessage, readyState} = useWebSocket(getWebsocketUrl(process.env.REACT_APP_API_URL || ""))
+function App() {
+    const [powerReadings, setPowerReadings] = useState<PowerValue[]>([]);
+    const [powerAverages, setPowerAverages] = useState<PowerValue[]>([]);
+    const [powerPeaks, setPowerPeaks] = useState<PowerValue[]>([]);
+
+    const {lastMessage} = useWebSocket(getWebsocketUrl(process.env.REACT_APP_API_URL || ""))
     useEffect(() => {
         if (lastMessage !== null) {
-            const msg = JSON.parse(lastMessage.data)
-
-            const time_formatted = new Date(msg.timestamp).toLocaleTimeString()
-            const value = msg.power
-
-            setLabels(labels => [...labels, time_formatted])
-            setPowerConsumption(powerConsumption => [...powerConsumption, value])
+            const updatesRaw = JSON.parse(lastMessage.data) as any[]
+            const updates = updatesRaw.map((update) => ({
+                timestamp: new Date(update.timestamp),
+                power: update.power,
+                type: update.type
+            }))
+            const readingUpdates = updates.filter(update => update.type === "reading")
+            if (readingUpdates.length > 0) {
+                const oneHourAgo = new Date(new Date().getTime() - 60 * 60 * 1000)
+                setPowerReadings(powerReadings =>
+                    [...powerReadings, ...readingUpdates]
+                        .filter(pm => pm.timestamp > oneHourAgo)
+                )
+            }
+            const averageUpdates = updates.filter(update => update.type === "average")
+            if (averageUpdates.length > 0) {
+                //TODO remove duplicate timestamps
+                const oneMonthAgo = new Date(new Date().getTime() - 30 * 24 * 60 * 60 * 1000)
+                setPowerAverages(powerAverages =>
+                    [...powerAverages, ...averageUpdates]
+                        .filter(pm => pm.timestamp > oneMonthAgo)
+                )
+            }
+            const peakUpdates = updates.filter(update => update.type === "peak")
+            if (peakUpdates.length > 0) {
+                //TODO remove duplicate timestamps
+                const oneYearAgo = new Date(new Date().getTime() - 365 * 24 * 60 * 60 * 1000)
+                setPowerPeaks(powerPeaks =>
+                    [...powerPeaks, ...peakUpdates]
+                        .filter(pm => pm.timestamp > oneYearAgo)
+                )
+            }
         }
-    }, [lastMessage, setLabels, setPowerConsumption])
+    }, [lastMessage])
 
-    const data = {
-        labels: labels,
+    const powerReadingsGraph = {
+        labels: powerReadings.map(pm => pm.timestamp.toLocaleTimeString()),
         datasets: [
             {
                 label: 'Energie verbruik',
-                data: powerConsumption,
+                data: powerReadings.map(pm => pm.power),
+                borderColor: 'rgba(68, 115, 158, 1)',
+                backgroundColor: 'rgba(68, 115, 158, 0.5)',
+            }
+        ]
+    }
+    const powerAveragesGraph = {
+        labels: powerAverages.map(pm => pm.timestamp.toLocaleDateString()),
+        datasets: [
+            {
+                label: 'Kwartier gemiddelde',
+                data: powerAverages.map(pm => pm.power),
+                borderColor: 'rgba(68, 115, 158, 1)',
+                backgroundColor: 'rgba(68, 115, 158, 0.5)',
+            }
+        ]
+    }
+    const powerPeakGraph = {
+        labels: powerPeaks.map(pm => pm.timestamp.toLocaleDateString()),
+        datasets: [
+            {
+                label: 'Maandpiek',
+                data: powerPeaks.map(pm => pm.power),
                 borderColor: 'rgba(68, 115, 158, 1)',
                 backgroundColor: 'rgba(68, 115, 158, 0.5)',
             }
@@ -90,10 +144,10 @@ function App() {
                 <PowerSensorSelect/>
             </div>
             <div className="medium-6 cell">
-                <Line data={data}/>
+                <Line data={powerReadingsGraph}/>
             </div>
             <div className="medium-8 cell">
-                <p>TODO add graph</p>
+                <Line data={powerAveragesGraph}/>
             </div>
             <div className="medium-4 cell">
                 <p>
@@ -113,7 +167,7 @@ function App() {
                 </p>
             </div>
             <div className="medium-8 cell">
-                <p>TODO add graph</p>
+                <Line data={powerPeakGraph}/>
             </div>
             <div className="medium-6 cell">
                 <p>TODO add graph</p>
@@ -136,17 +190,24 @@ function App() {
                 <h2>Begrippenlijst en verdere uitleg</h2>
                 <dl>
                     <dt>Vermogen versus verbruik</dt>
-                    <dd>Het is heel eenvoudig om deze beide begrippen te verwarren. Het vermogen dat je op toestellen vindt
-                    is steeds aangeduid in watt (W) of kilowatt (kW = 1000 W). Het duidt aan hoeveel energie een toestel maximaal
-                    per seconde zal gebruiken. Het verbruik is hoeveel energie een toestel tijdens een bepaalde periode
-                    heeft gebruikt. Bijvoorbeeld, staat je microgolf die 1000W verbruik 15 minuten aan, dan zal die
-                    dat uur 1000W x 15min / 60min/uur = 250Wh verbruikt hebben. Het grootste deel van je elektriciteitsrekening
-                    is afhankelijk van je verbruik. Het capaciteitstarief voegt nu ook een onderdeel toe waarbij je moet
-                    betalen voor het maximale vermogen dat je verbruikt.</dd>
+                    <dd>Het is heel eenvoudig om deze beide begrippen te verwarren. Het vermogen dat je op toestellen
+                        vindt
+                        is steeds aangeduid in watt (W) of kilowatt (kW = 1000 W). Het duidt aan hoeveel energie een
+                        toestel maximaal
+                        per seconde zal gebruiken. Het verbruik is hoeveel energie een toestel tijdens een bepaalde
+                        periode
+                        heeft gebruikt. Bijvoorbeeld, staat je microgolf die 1000W verbruik 15 minuten aan, dan zal die
+                        dat uur 1000W x 15min / 60min/uur = 250Wh verbruikt hebben. Het grootste deel van je
+                        elektriciteitsrekening
+                        is afhankelijk van je verbruik. Het capaciteitstarief voegt nu ook een onderdeel toe waarbij je
+                        moet
+                        betalen voor het maximale vermogen dat je verbruikt.
+                    </dd>
                     <dt>Bronnen</dt>
                     <dd>Voor het opstellen van deze pagina werden de volgende bronnen gebruikt:
                         <ul>
-                            <li><a href="https://www.vreg.be/nl/faq/nieuwe-nettarieven-2023">Vragenlijst nieuwe nettarieven VREG</a></li>
+                            <li><a href="https://www.vreg.be/nl/faq/nieuwe-nettarieven-2023">Vragenlijst nieuwe
+                                nettarieven VREG</a></li>
                         </ul>
                     </dd>
                 </dl>

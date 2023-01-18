@@ -1,7 +1,7 @@
 import sqlite3
 from datetime import datetime
 
-from .model import PowerReading
+from .model import PowerReading, PowerUpdate
 from .utils import round_down_quarter, beginning_of_month
 
 
@@ -22,6 +22,7 @@ class PowermonDatabase:
 
     def insert_power_reading(self, reading: PowerReading):
         self.db.execute('INSERT INTO power VALUES (?, ?)', (reading.timestamp, reading.power))
+        updates = [PowerUpdate(reading.power, reading.timestamp, 'reading')]
 
         cursor = self.db.cursor()
         quarter = round_down_quarter(reading.timestamp)
@@ -37,11 +38,15 @@ class PowermonDatabase:
             self.db.execute('UPDATE power_quarter_average SET power_average = ?, num_readings = ? WHERE timestamp = ?',
                             (new_power_average, num_readings + 1, quarter))
 
+        updates.append(PowerUpdate(new_power_average, quarter, 'average'))
+
         month, power_max = self.get_power_month_peak(reading.timestamp)
         if new_power_average > power_max:
             self.db.execute('INSERT OR REPLACE INTO power_month_peak VALUES (?, ?)', (month, new_power_average))
+            updates.append(PowerUpdate(new_power_average, month, 'peak'))
 
         self.db.commit()
+        return updates
 
     def get_power_readings(self, start: datetime, end: datetime):
         cursor = self.db.cursor()

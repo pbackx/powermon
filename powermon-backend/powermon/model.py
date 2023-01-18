@@ -23,3 +23,20 @@ class PowerReading:
             'timestamp': self.timestamp.isoformat(),
             'power': self.power
         }
+
+
+class PowerUpdate:
+    def __init__(self, power, timestamp, update_type):
+        self.power = power
+        self.timestamp = timestamp
+        self.type = update_type
+
+    def __str__(self):
+        return f'[{self.timestamp}] {self.power}W {self.type}'
+
+    def to_json(self):
+        return {
+            'timestamp': self.timestamp.isoformat(),
+            'power': self.power,
+            'type': self.type
+        }

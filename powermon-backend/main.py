@@ -10,7 +10,7 @@ from aiohttp_middlewares import cors_middleware
 from dotenv import load_dotenv
 
 from powermon.database import PowermonDatabase
-from powermon.model import PowerReading
+from powermon.model import PowerReading, PowerUpdate
 
 load_dotenv()
 token = os.environ.get('SUPERVISOR_TOKEN')
@@ -81,8 +81,7 @@ async def websocket_handler(request):
 
     readings = database.get_power_readings(datetime.now(local_timezone) - timedelta(hours=1),
                                            datetime.now(local_timezone))
-    for reading in readings:
-        await ws.send_json(reading.to_json())
+    await ws.send_json([PowerUpdate(reading.power, reading.timestamp, 'reading').to_json() for reading in readings])
 
     async for msg in ws:
         if msg.type == aiohttp.WSMsgType.TEXT:
@@ -127,10 +126,10 @@ async def homeassistant_listener(app):
                                     rdata["new_state"]["last_changed"],
                                     rdata["new_state"]["attributes"]["unit_of_measurement"])
                                 logging.info(f'HA WS: {reading}')
-                                database.insert_power_reading(reading)
+                                updates = database.insert_power_reading(reading)
                                 for ws in app['websockets']:
                                     try:
-                                        await ws.send_json(reading.to_json())
+                                        await ws.send_json([update.to_json() for update in updates])
                                     except Exception as e:
                                         logging.error(f'Error sending to websocket: {e}')
                                         app['websockets'].remove(ws)
