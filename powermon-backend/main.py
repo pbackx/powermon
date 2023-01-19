@@ -26,8 +26,8 @@ power_sensor = os.environ.get('POWER_SENSOR')
 if power_sensor is None:
     raise ValueError('POWER_SENSOR environment variable not set')
 
-database = PowermonDatabase(os.environ.get('DATABASE_FILE', '/data/powermon.db'))
 local_timezone = datetime.now(timezone.utc).astimezone().tzinfo
+database = PowermonDatabase(os.environ.get('DATABASE_FILE', '/data/powermon.db'), local_timezone)
 
 
 async def hello_world(request):

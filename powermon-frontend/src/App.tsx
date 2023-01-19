@@ -64,30 +64,36 @@ function App() {
             if (readingUpdates.length > 0) {
                 const oneHourAgo = new Date(new Date().getTime() - 60 * 60 * 1000)
                 setPowerReadings(powerReadings =>
-                    [...powerReadings, ...readingUpdates]
-                        .filter(pm => pm.timestamp > oneHourAgo)
+                    mergePowerValues([...powerReadings, ...readingUpdates]
+                        .filter(pm => pm.timestamp > oneHourAgo))
                 )
             }
             const averageUpdates = updates.filter(update => update.type === "average")
             if (averageUpdates.length > 0) {
-                //TODO remove duplicate timestamps
                 const oneMonthAgo = new Date(new Date().getTime() - 30 * 24 * 60 * 60 * 1000)
                 setPowerAverages(powerAverages =>
-                    [...powerAverages, ...averageUpdates]
-                        .filter(pm => pm.timestamp > oneMonthAgo)
+                    mergePowerValues([...powerAverages, ...averageUpdates]
+                        .filter(pm => pm.timestamp > oneMonthAgo))
                 )
             }
             const peakUpdates = updates.filter(update => update.type === "peak")
             if (peakUpdates.length > 0) {
-                //TODO remove duplicate timestamps
                 const oneYearAgo = new Date(new Date().getTime() - 365 * 24 * 60 * 60 * 1000)
                 setPowerPeaks(powerPeaks =>
-                    [...powerPeaks, ...peakUpdates]
-                        .filter(pm => pm.timestamp > oneYearAgo)
+                    mergePowerValues([...powerPeaks, ...peakUpdates]
+                        .filter(pm => pm.timestamp > oneYearAgo))
                 )
             }
         }
     }, [lastMessage])
+
+    function mergePowerValues(powerValues: PowerValue[]) {
+        const powerValuesByTimestamp = powerValues.reduce((acc, pv) => {
+            acc[pv.timestamp.getTime()] = pv
+            return acc
+        }, {} as Record<number, PowerValue>)
+        return Object.values(powerValuesByTimestamp)
+    }
 
     const powerReadingsGraph = {
         labels: powerReadings.map(pm => pm.timestamp.toLocaleTimeString()),

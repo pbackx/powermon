@@ -2,9 +2,8 @@
 
 This is a list where I document simple tasks that are easy to pick up and get going:
 
-1. Remove duplicates in average and peak display
-2. Fix peak display (it seems to be showing the same values as average)
-3. Also send averages and peaks on websocket connect 
+1. Fix peak display (it seems to be showing the same values as average) => DONE, but to be tested
+2. Also send averages and peaks on websocket connect 
 
 # Doing
 
