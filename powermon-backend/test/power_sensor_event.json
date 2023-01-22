@@ -1,0 +1,51 @@
+{
+  "id": 1,
+  "type": "event",
+  "event": {
+    "event_type": "state_changed",
+    "data": {
+      "entity_id": "sensor.power_consumption",
+      "old_state": {
+        "entity_id": "sensor.power_consumption",
+        "state": "0.655",
+        "attributes": {
+          "state_class": "measurement",
+          "unit_of_measurement": "kW",
+          "device_class": "power",
+          "friendly_name": "Electricity Meter Power consumption"
+        },
+        "last_changed": "2023-01-22T20:09:29.484667+00:00",
+        "last_updated": "2023-01-22T20:09:29.484667+00:00",
+        "context": {
+          "id": "01GQDHK9MCHSZ503JMR7AHBJN7",
+          "parent_id": null,
+          "user_id": null
+        }
+      },
+      "new_state": {
+        "entity_id": "sensor.power_consumption",
+        "state": "0.645",
+        "attributes": {
+          "state_class": "measurement",
+          "unit_of_measurement": "kW",
+          "device_class": "power",
+          "friendly_name": "Electricity Meter Power consumption"
+        },
+        "last_changed": "2023-01-22T20:10:00.489196+00:00",
+        "last_updated": "2023-01-22T20:10:00.489196+00:00",
+        "context": {
+          "id": "01GQDHM7X90T8VVG1P35ZFY5W7",
+          "parent_id": null,
+          "user_id": null
+        }
+      }
+    },
+    "origin": "LOCAL",
+    "time_fired": "2023-01-22T20:10:00.489196+00:00",
+    "context": {
+      "id": "01GQDHM7X90T8VVG1P35ZFY5W7",
+      "parent_id": null,
+      "user_id": null
+    }
+  }
+}

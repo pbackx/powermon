@@ -50,6 +50,7 @@ function App() {
     const [powerReadings, setPowerReadings] = useState<PowerValue[]>([]);
     const [powerAverages, setPowerAverages] = useState<PowerValue[]>([]);
     const [powerPeaks, setPowerPeaks] = useState<PowerValue[]>([]);
+    const [averageYearlyPeak, setAverageYearlyPeak] = useState<number>(0);
 
     const {lastMessage} = useWebSocket(getWebsocketUrl(process.env.REACT_APP_API_URL || ""))
     useEffect(() => {
@@ -57,7 +58,7 @@ function App() {
             const updatesRaw = JSON.parse(lastMessage.data) as any[]
             const updates = updatesRaw.map((update) => ({
                 timestamp: new Date(update.timestamp),
-                power: update.power,
+                power: update.power as number,
                 type: update.type
             }))
             const readingUpdates = updates.filter(update => update.type === "reading")
@@ -83,6 +84,10 @@ function App() {
                     mergePowerValues([...powerPeaks, ...peakUpdates]
                         .filter(pm => pm.timestamp > oneYearAgo))
                 )
+            }
+            const yearAverage = updates.filter(update => update.type === "year_average")
+            if (yearAverage.length > 0) {
+                setAverageYearlyPeak(yearAverage[yearAverage.length - 1].power)
             }
         }
     }, [lastMessage])
@@ -176,7 +181,7 @@ function App() {
                 <Line data={powerPeakGraph}/>
             </div>
             <div className="medium-6 cell">
-                <p>TODO add graph</p>
+                <p>{averageYearlyPeak}W</p>
             </div>
             <div className="medium-6 cell">
                 <p>

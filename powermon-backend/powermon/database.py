@@ -1,8 +1,8 @@
 import functools
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timedelta
 
-from .model import PowerReading, PowerUpdate
+from .model import PowerReading, PowerUpdate, PowerUpdateType
 from .utils import round_down_quarter, beginning_of_month
 
 
@@ -55,7 +55,7 @@ class PowermonDatabase:
         cursor.execute('SELECT power, timestamp FROM power '
                        'WHERE timestamp >= DATETIME(?) AND timestamp <= DATETIME(?) ORDER BY timestamp',
                        (start.isoformat(), end.isoformat()))
-        return [PowerReading(*row) for row in cursor.fetchall()]
+        return [PowerUpdate(*row, 'reading') for row in cursor.fetchall()]
 
     def get_power_averages(self, start: datetime, end: datetime):
         cursor = self.db.cursor()
@@ -64,7 +64,23 @@ class PowermonDatabase:
                        (start.isoformat(), end.isoformat()))
         return [PowerUpdate(*row, 'average') for row in cursor.fetchall()]
 
-    # noinspection SqlWithoutWhere
+    def get_month_peaks(self, start: datetime, end: datetime):
+        cursor = self.db.cursor()
+        cursor.execute('SELECT power_peak, timestamp FROM power_month_peak '
+                       'WHERE timestamp >= DATETIME(?) AND timestamp <= DATETIME(?) ORDER BY timestamp',
+                       (start.isoformat(), end.isoformat()))
+        return [PowerUpdate(*row, PowerUpdateType.PEAK) for row in cursor.fetchall()]
+
+    def get_yearly_average(self, month_peaks: list[PowerUpdate] = None):
+        if month_peaks is None:
+            start = datetime.now(self.local_timezone) - timedelta(days=365)
+            end = datetime.now(self.local_timezone)
+            month_peaks = self.get_month_peaks(start, end)
+        average = sum([peak.power for peak in month_peaks]) / len(month_peaks)
+        return PowerUpdate(average, datetime.now(self.local_timezone), PowerUpdateType.YEAR_AVERAGE)
+
+        # noinspection SqlWithoutWhere
+
     def delete_data(self):
         self.db.execute('DELETE FROM power')
         self.db.execute('DELETE FROM power_quarter_average')
@@ -73,7 +89,7 @@ class PowermonDatabase:
 
     def update_month_peak_if_needed(self):
         time_difference = datetime.now(self.local_timezone) - self.last_peak_updated
-        if time_difference.seconds/60 < 15:
+        if time_difference.seconds / 60 < 15:
             return None
 
         # We are more than 15 minutes into the next quarter, so we can update the month peak
@@ -83,4 +99,7 @@ class PowermonDatabase:
         self.db.execute('INSERT OR REPLACE INTO power_month_peak VALUES (?, ?)', (month, peak.power))
 
         self.last_peak_updated = round_down_quarter(datetime.now(self.local_timezone))
-        return PowerUpdate(peak.power, month, 'peak')
+        return [
+            PowerUpdate(peak.power, month, 'peak'),
+            self.get_yearly_average()
+        ]

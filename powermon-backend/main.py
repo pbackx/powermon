@@ -10,7 +10,7 @@ from aiohttp_middlewares import cors_middleware
 from dotenv import load_dotenv
 
 from powermon.database import PowermonDatabase
-from powermon.model import PowerReading, PowerUpdate
+from powermon.model import PowerReading
 
 load_dotenv()
 token = os.environ.get('SUPERVISOR_TOKEN')
@@ -74,6 +74,10 @@ async def delete_database(request):
     return web.json_response({"message": "Database deleted"})
 
 
+class POwerUpdateType:
+    pass
+
+
 async def websocket_handler(request):
     ws = web.WebSocketResponse()
     await ws.prepare(request)
@@ -81,7 +85,12 @@ async def websocket_handler(request):
 
     readings = database.get_power_readings(datetime.now(local_timezone) - timedelta(hours=1),
                                            datetime.now(local_timezone))
-    await ws.send_json([PowerUpdate(reading.power, reading.timestamp, 'reading').to_json() for reading in readings])
+    readings.extend(database.get_power_averages(datetime.now(local_timezone) - timedelta(days=31),
+                                                datetime.now(local_timezone)))
+    peaks = database.get_month_peaks(datetime.now(local_timezone) - timedelta(days=365), datetime.now(local_timezone))
+    readings.extend(peaks)
+    readings.append(database.get_yearly_average(peaks))
+    await ws.send_json([r.to_json() for r in readings])
 
     async for msg in ws:
         if msg.type == aiohttp.WSMsgType.TEXT:
