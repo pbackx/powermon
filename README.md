@@ -29,6 +29,11 @@ machine you do your development on and connect it to your Home Assistant install
    CORS_ORIGINS=http://localhost:3000
    SUPERVISOR_TOKEN=<your Home Assistant Supervisor token>
    WEBSOCKET_URL=ws://homeassistant.local:8123/api/websocket
+   HA_CORE_API_URL=http://homeassistant.local:8123/api
+   POWER_SENSOR=sensor.power_consumption
+   DATABASE_FILE=powermon.db
+   POWER_AVERAGE_OUT=sensor.powermon_power_average
+   POWER_PEAK_OUT=sensor.powermon_power_peak
    ```
 
 5. Install the requirements with `pip install -r requirements.txt`.

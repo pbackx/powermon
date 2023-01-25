@@ -51,27 +51,3 @@ class PowerUpdate:
             'power': self.power,
             'type': self.type.value
         }
-
-
-class PowerEvent:
-    #TODO add actual data
-    def __init__(self):
-        self.id = 0
-
-    def to_json(self):
-        self.id += 1
-        return {
-            'id': self.id,
-            'type': 'fire_event',
-            'event_type': 'state_changed',
-            'event_data': {
-                'entity_id': 'sensor.powermon_power_average',
-                'state': 500,
-                'attributes': {
-                    'unit_of_measurement': 'W',
-                    'friendly_name': 'Powermon Power Average',
-                    'device_class': 'power',
-                    'state_class': 'measurement'
-                }
-            }
-        }

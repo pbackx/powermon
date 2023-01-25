@@ -10,7 +10,7 @@ from aiohttp_middlewares import cors_middleware
 from dotenv import load_dotenv
 
 from powermon.database import PowermonDatabase
-from powermon.model import PowerReading
+from powermon.model import PowerReading, PowerUpdateType
 
 load_dotenv()
 token = os.environ.get('SUPERVISOR_TOKEN')
@@ -25,6 +25,12 @@ supervisor_api_url = 'http://supervisor'
 power_sensor = os.environ.get('POWER_SENSOR')
 if power_sensor is None:
     raise ValueError('POWER_SENSOR environment variable not set')
+power_average_out = os.environ.get('POWER_AVERAGE_OUT')
+if power_average_out is None:
+    raise ValueError('POWER_AVERAGE_OUT environment variable not set')
+power_peak_out = os.environ.get('POWER_PEAK_OUT')
+if power_peak_out is None:
+    raise ValueError('POWER_PEAK_OUT environment variable not set')
 
 local_timezone = datetime.now(timezone.utc).astimezone().tzinfo
 database = PowermonDatabase(os.environ.get('DATABASE_FILE', '/data/powermon.db'), local_timezone)
@@ -110,6 +116,7 @@ async def websocket_handler(request):
 
 async def homeassistant_listener(app):
     logging.info(f'Connecting to Home Assistant at {websocket_url}')
+    next_id = 1
     async with aiohttp.ClientSession() as session:
         async with session.ws_connect(websocket_url) as websocket:
             async for msg in websocket:
@@ -124,9 +131,13 @@ async def homeassistant_listener(app):
                         elif rtype == "auth_ok":
                             logging.info('Successfully authenticated with Home Assistant')
                             await websocket.send_json(
-                                {"id": 1, "type": "subscribe_events", "event_type": "state_changed"})
+                                {"id": next_id, "type": "subscribe_events", "event_type": "state_changed"})
+                            next_id += 1
                         elif rtype == "result":
-                            logging.info("HA WS: subscription result: {}".format(rjson["success"]))
+                            if rjson["success"]:
+                                logging.info("HA WS: success")
+                            else:
+                                logging.error(f'HA WS: error {rjson["error"]})')
                         elif rtype == "event":
                             rdata = rjson["event"]["data"]
                             if rdata["entity_id"] == power_sensor:
@@ -142,6 +153,34 @@ async def homeassistant_listener(app):
                                     except Exception as e:
                                         logging.error(f'Error sending to websocket: {e}')
                                         app['websockets'].remove(ws)
+                                await send_updates_to_ha(updates)
+
+
+async def send_updates_to_ha(updates):
+    # TODO should only send when the data if final
+    # extract this into a separate class and only update when time elapses a quarter or month
+    async with aiohttp.ClientSession(headers=headers) as session:
+        updates_average = [update for update in updates if update.type == PowerUpdateType.AVERAGE]
+        for update in updates_average:
+            async with session.post(f'{ha_core_api_url}/states/{power_average_out}',
+                                    json={"state": update.power,
+                                          "attributes": {"unit_of_measurement": "W",
+                                                         "friendly_name": "Power Average of Previous 15 Minutes",
+                                                         "device_class": "power",
+                                                         "state_class": "measurement"}}) as resp:
+                if resp.status != 200:
+                    logging.error(f'Error updating power average sensor: {resp.status}, {await resp.text()}')
+        updates_peak = [update for update in updates if update.type == PowerUpdateType.PEAK]
+        for update in updates_peak:
+            async with session.post(f'{ha_core_api_url}/states/{power_peak_out}',
+                                    json={"state": update.power,
+                                          "attributes": {"unit_of_measurement": "W",
+                                                         "friendly_name": "Power Peak of Previous Month (highest 15 minutes)",
+                                                         "device_class": "power",
+                                                         "state_class": "measurement"}}) as resp:
+                if resp.status != 200:
+                    logging.error(f'Error updating power peak sensor: {resp.status}, {await resp.text()}')
+
 
 
 async def homeassistant_connection(app):

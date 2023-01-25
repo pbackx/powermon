@@ -15,5 +15,9 @@ ingress: true
 homeassistant_api: true
 options:
   power_sensor: "sensor.power_consumption"
+  power_average_out: "sensor.powermon_power_average"
+  power_peak_out: "sensor.powermon_power_peak"
 schema:
   power_sensor: str
+  power_average_out: str
+  power_peak_out: str
