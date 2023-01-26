@@ -9,6 +9,7 @@ import aiohttp
 from aiohttp_middlewares import cors_middleware
 from dotenv import load_dotenv
 
+from homeassistant.reporter import Reporter
 from powermon.database import PowermonDatabase
 from powermon.model import PowerReading, PowerUpdateType
 
@@ -25,15 +26,10 @@ supervisor_api_url = 'http://supervisor'
 power_sensor = os.environ.get('POWER_SENSOR')
 if power_sensor is None:
     raise ValueError('POWER_SENSOR environment variable not set')
-power_average_out = os.environ.get('POWER_AVERAGE_OUT')
-if power_average_out is None:
-    raise ValueError('POWER_AVERAGE_OUT environment variable not set')
-power_peak_out = os.environ.get('POWER_PEAK_OUT')
-if power_peak_out is None:
-    raise ValueError('POWER_PEAK_OUT environment variable not set')
 
 local_timezone = datetime.now(timezone.utc).astimezone().tzinfo
 database = PowermonDatabase(os.environ.get('DATABASE_FILE', '/data/powermon.db'), local_timezone)
+report = Reporter(ha_core_api_url, headers)
 
 
 async def hello_world(request):
@@ -78,10 +74,6 @@ async def load_power_sensors(request):
 async def delete_database(request):
     database.delete_data()
     return web.json_response({"message": "Database deleted"})
-
-
-class POwerUpdateType:
-    pass
 
 
 async def websocket_handler(request):
@@ -153,34 +145,7 @@ async def homeassistant_listener(app):
                                     except Exception as e:
                                         logging.error(f'Error sending to websocket: {e}')
                                         app['websockets'].remove(ws)
-                                await send_updates_to_ha(updates)
-
-
-async def send_updates_to_ha(updates):
-    # TODO should only send when the data if final
-    # extract this into a separate class and only update when time elapses a quarter or month
-    async with aiohttp.ClientSession(headers=headers) as session:
-        updates_average = [update for update in updates if update.type == PowerUpdateType.AVERAGE]
-        for update in updates_average:
-            async with session.post(f'{ha_core_api_url}/states/{power_average_out}',
-                                    json={"state": update.power,
-                                          "attributes": {"unit_of_measurement": "W",
-                                                         "friendly_name": "Power Average of Previous 15 Minutes",
-                                                         "device_class": "power",
-                                                         "state_class": "measurement"}}) as resp:
-                if resp.status != 200:
-                    logging.error(f'Error updating power average sensor: {resp.status}, {await resp.text()}')
-        updates_peak = [update for update in updates if update.type == PowerUpdateType.PEAK]
-        for update in updates_peak:
-            async with session.post(f'{ha_core_api_url}/states/{power_peak_out}',
-                                    json={"state": update.power,
-                                          "attributes": {"unit_of_measurement": "W",
-                                                         "friendly_name": "Power Peak of Previous Month (highest 15 minutes)",
-                                                         "device_class": "power",
-                                                         "state_class": "measurement"}}) as resp:
-                if resp.status != 200:
-                    logging.error(f'Error updating power peak sensor: {resp.status}, {await resp.text()}')
-
+                                await report.send_updates(updates)
 
 
 async def homeassistant_connection(app):
