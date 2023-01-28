@@ -19,6 +19,7 @@ References:
 
 Bigger tasks that need to be split in smaller items:
 
-1. Add logo and favicon
-2. Package as a proper add-on
-3. Find a way to access the database for development purposes (probably requires enabling dev SSH access)
+1. When restarting HA, it looks like the add-on tries to connect to the websocket too early. Some retry mechanism needs to be added.
+2. Add logo and favicon
+3. Package as a proper add-on
+4. Find a way to access the database for development purposes (probably requires enabling dev SSH access)
