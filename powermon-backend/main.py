@@ -8,10 +8,11 @@ from aiohttp import web
 import aiohttp
 from aiohttp_middlewares import cors_middleware
 from dotenv import load_dotenv
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from homeassistant.reporter import Reporter
 from powermon.database import PowermonDatabase
-from powermon.model import PowerReading, PowerUpdateType
+from powermon.model import PowerReading
 
 load_dotenv()
 token = os.environ.get('SUPERVISOR_TOKEN')
@@ -29,7 +30,10 @@ if power_sensor is None:
 
 local_timezone = datetime.now(timezone.utc).astimezone().tzinfo
 database = PowermonDatabase(os.environ.get('DATABASE_FILE', '/data/powermon.db'), local_timezone)
-report = Reporter(ha_core_api_url, headers)
+scheduler = AsyncIOScheduler()
+logging.getLogger('apscheduler').setLevel(logging.WARNING)
+
+report = Reporter(ha_core_api_url, headers, scheduler, database )
 
 
 async def hello_world(request):
@@ -145,12 +149,13 @@ async def homeassistant_listener(app):
                                     except Exception as e:
                                         logging.error(f'Error sending to websocket: {e}')
                                         app['websockets'].remove(ws)
-                                await report.send_updates(updates)
 
 
 async def homeassistant_connection(app):
     app['homeassistant_listener'] = asyncio.create_task(homeassistant_listener(app))
+    scheduler.start()
     yield
+    scheduler.shutdown()
     app['homeassistant_listener'].cancel()
     await app['homeassistant_listener']
 

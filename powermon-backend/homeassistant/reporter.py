@@ -1,21 +1,24 @@
 import logging
 import os
-from datetime import datetime
+import random
+from datetime import datetime, timedelta
 
 import aiohttp
+from apscheduler.schedulers.base import BaseScheduler
 
-from powermon.model import PowerUpdateType
+from powermon.database import PowermonDatabase
 from powermon.utils import round_down_quarter
 
 
 class Reporter:
-    def __init__(self, ha_core_api_url, headers):
+    def __init__(self, ha_core_api_url, headers, scheduler: BaseScheduler, database: PowermonDatabase):
         self.ha_core_api_url = ha_core_api_url
         self.headers = headers
+        self.scheduler = scheduler
+        self.database = database
 
-        self.last_update = round_down_quarter(datetime.now())
-        self.last_update_average = None
-        self.last_update_peak = None
+        self.scheduler.add_job(self.send_quarter_average_update, 'cron', second='*/15', minute='1,16,31,46')
+        self.scheduler.add_job(self.send_month_peak_update, 'cron', day='1', hour='0', minute='1', second='0')
 
         self.shared_attribute = {"unit_of_measurement": "W",
                                  "device_class": "power",
@@ -28,38 +31,29 @@ class Reporter:
         if self.power_peak_out is None:
             raise ValueError('POWER_PEAK_OUT environment variable not set')
 
-    def store_updates(self, updates):
-        updates_average = [update for update in updates if update.type == PowerUpdateType.AVERAGE]
-        self.last_update_average = updates_average[-1] if len(updates_average) > 0 else None
-        updates_peak = [update for update in updates if update.type == PowerUpdateType.PEAK]
-        self.last_update_peak = updates_peak[-1] if len(updates_peak) > 0 else None
+    async def send_quarter_average_update(self):
+        logging.info('Sending quarter average to HA.')
+        # TODO get actual value from database
+        previous_quarter = round_down_quarter(datetime.now()) - timedelta(minutes=15)
+        logging.info(f'Getting average for {previous_quarter}')
+        await self.send_value_to_ha(self.power_average_out,
+                                    random.Random().randint(200, 400),
+                                    'Power Average of Previous 15 Minutes')
 
-    async def send_quarterly_update(self):
+    async def send_month_peak_update(self):
+        logging.info('Sending month peak to HA.')
+        # TODO get actual value from database
+        await self.send_value_to_ha(self.power_peak_out,
+                                    random.Random().randint(200, 400),
+                                    'Power Peak of Previous Month')
+
+    async def send_value_to_ha(self, sensor: str, value: float, friendly_name):
         async with aiohttp.ClientSession(headers=self.headers) as session:
-            if self.last_update_average is not None:
-                async with session.post(f'{self.ha_core_api_url}/states/{self.power_average_out}',
-                                        json={"state": self.last_update_average.power,
-                                              "attributes": {
-                                                  **self.shared_attribute,
-                                                  "friendly_name": "Power Average of Previous 15 Minutes",
-                                              }}) as resp:
-                    if resp.status != 200:
-                        logging.error(f'Error updating power average sensor: {resp.status}, {await resp.text()}')
-            if self.last_update_peak is not None:
-                async with session.post(f'{self.ha_core_api_url}/states/{self.power_peak_out}',
-                                        json={"state": self.last_update_peak.power,
-                                              "attributes": {
-                                                  **self.shared_attribute,
-                                                  "friendly_name": "Power Peak of Previous Month (highest 15 minutes)",
-                                              }}) as resp:
-                    if resp.status != 200:
-                        logging.error(f'Error updating power peak sensor: {resp.status}, {await resp.text()}')
-
-    async def send_updates(self, updates):
-        self.store_updates(updates)
-
-        # TODO probably best to just use a timer to send updates every 15 minutes
-        current_quarter = round_down_quarter(datetime.now())
-        if current_quarter != self.last_update:
-            self.last_update = current_quarter
-            await self.send_quarterly_update()
+            async with session.post(f'{self.ha_core_api_url}/states/{sensor}',
+                                    json={"state": value,
+                                          "attributes": {
+                                              **self.shared_attribute,
+                                              "friendly_name": friendly_name,
+                                          }}) as resp:
+                if resp.status != 200:
+                    logging.error(f'Error updating power average sensor: {resp.status}, {await resp.text()}')
