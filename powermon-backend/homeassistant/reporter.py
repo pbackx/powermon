@@ -7,15 +7,16 @@ import aiohttp
 from apscheduler.schedulers.base import BaseScheduler
 
 from powermon.database import PowermonDatabase
-from powermon.utils import round_down_quarter
+from powermon.utils import round_down_quarter, beginning_of_month
 
 
 class Reporter:
-    def __init__(self, ha_core_api_url, headers, scheduler: BaseScheduler, database: PowermonDatabase):
+    def __init__(self, ha_core_api_url, headers, scheduler: BaseScheduler, database: PowermonDatabase, local_timezone):
         self.ha_core_api_url = ha_core_api_url
         self.headers = headers
         self.scheduler = scheduler
         self.database = database
+        self.local_timezone = local_timezone
 
         self.scheduler.add_job(self.send_quarter_average_update, 'cron', second='*/15', minute='1,16,31,46')
         self.scheduler.add_job(self.send_month_peak_update, 'cron', day='1', hour='0', minute='1', second='0')
@@ -33,18 +34,23 @@ class Reporter:
 
     async def send_quarter_average_update(self):
         logging.info('Sending quarter average to HA.')
-        # TODO get actual value from database
         previous_quarter = round_down_quarter(datetime.now()) - timedelta(minutes=15)
-        logging.info(f'Getting average for {previous_quarter}')
+        power_averages = self.database.get_power_averages(previous_quarter, previous_quarter + timedelta(minutes=5))
         await self.send_value_to_ha(self.power_average_out,
-                                    random.Random().randint(200, 400),
+                                    power_averages[0].power,
                                     'Power Average of Previous 15 Minutes')
 
     async def send_month_peak_update(self):
         logging.info('Sending month peak to HA.')
-        # TODO get actual value from database
+        current_month_number = datetime.now(self.local_timezone).month
+        previous_month_number = current_month_number - 1 if current_month_number > 1 else 12
+        previous_month = datetime(year=datetime.now().year,
+                                  month=previous_month_number,
+                                  day=1,
+                                  tzinfo=self.local_timezone)
+        power_peaks = self.database.get_month_peaks(previous_month, previous_month + timedelta(days=1))
         await self.send_value_to_ha(self.power_peak_out,
-                                    random.Random().randint(200, 400),
+                                    power_peaks[0].power,
                                     'Power Peak of Previous Month')
 
     async def send_value_to_ha(self, sensor: str, value: float, friendly_name):

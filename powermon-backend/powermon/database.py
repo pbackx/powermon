@@ -12,7 +12,6 @@ class PowermonDatabase:
         self.db_file = database_file
         self.create_db()
         self.local_timezone = local_timezone
-        self.last_peak_updated = round_down_quarter(datetime.now(self.local_timezone))
 
     def create_db(self):
         self.db = sqlite3.connect(self.db_file)
@@ -23,7 +22,7 @@ class PowermonDatabase:
                         '(timestamp DATETIME PRIMARY KEY, power_peak REAL)')
         self.db.commit()
 
-    def insert_power_reading(self, reading: PowerReading):
+    def insert_power_reading(self, reading: PowerReading) -> list[PowerUpdate]:
         self.db.execute('INSERT INTO power VALUES (?, ?)', (reading.timestamp, reading.power))
         updates = [PowerUpdate(reading.power, reading.timestamp, 'reading')]
 
@@ -42,10 +41,7 @@ class PowermonDatabase:
                             (new_power_average, num_readings + 1, quarter))
 
         updates.append(PowerUpdate(new_power_average, quarter, 'average'))
-
-        peak_update = self.update_month_peak_if_needed()
-        if peak_update is not None:
-            updates.append(peak_update)
+        updates.append(self.update_month_peak())
 
         self.db.commit()
         return updates
@@ -57,14 +53,14 @@ class PowermonDatabase:
                        (start.isoformat(), end.isoformat()))
         return [PowerUpdate(*row, 'reading') for row in cursor.fetchall()]
 
-    def get_power_averages(self, start: datetime, end: datetime):
+    def get_power_averages(self, start: datetime, end: datetime) -> list[PowerUpdate]:
         cursor = self.db.cursor()
         cursor.execute('SELECT power_average, timestamp FROM power_quarter_average '
                        'WHERE timestamp >= DATETIME(?) AND timestamp <= DATETIME(?) ORDER BY timestamp',
                        (start.isoformat(), end.isoformat()))
         return [PowerUpdate(*row, 'average') for row in cursor.fetchall()]
 
-    def get_month_peaks(self, start: datetime, end: datetime):
+    def get_month_peaks(self, start: datetime, end: datetime) -> list[PowerUpdate]:
         cursor = self.db.cursor()
         cursor.execute('SELECT power_peak, timestamp FROM power_month_peak '
                        'WHERE timestamp >= DATETIME(?) AND timestamp <= DATETIME(?) ORDER BY timestamp',
@@ -79,7 +75,7 @@ class PowermonDatabase:
         average = sum([peak.power for peak in month_peaks]) / len(month_peaks)
         return PowerUpdate(average, datetime.now(self.local_timezone), PowerUpdateType.YEAR_AVERAGE)
 
-        # noinspection SqlWithoutWhere
+    # noinspection SqlWithoutWhere
 
     def delete_data(self):
         self.db.execute('DELETE FROM power')
@@ -87,19 +83,11 @@ class PowermonDatabase:
         self.db.execute('DELETE FROM power_month_peak')
         self.db.commit()
 
-    def update_month_peak_if_needed(self):
-        time_difference = datetime.now(self.local_timezone) - self.last_peak_updated
-        if time_difference.seconds / 60 < 15:
-            return None
-
-        # We are more than 15 minutes into the next quarter, so we can update the month peak
-        month = beginning_of_month(self.last_peak_updated)
-        averages = self.get_power_averages(month, self.last_peak_updated)
+    def update_month_peak(self) -> PowerUpdate:
+        now = datetime.now(self.local_timezone)
+        month = beginning_of_month(now)
+        averages = self.get_power_averages(month, now)
         peak = functools.reduce(lambda q1, q2: q1 if q1.power > q2.power else q2, averages)
         self.db.execute('INSERT OR REPLACE INTO power_month_peak VALUES (?, ?)', (month, peak.power))
 
-        self.last_peak_updated = round_down_quarter(datetime.now(self.local_timezone))
-        return [
-            PowerUpdate(peak.power, month, 'peak'),
-            self.get_yearly_average()
-        ]
+        return PowerUpdate(peak.power, month, 'peak')

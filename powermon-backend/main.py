@@ -33,7 +33,7 @@ database = PowermonDatabase(os.environ.get('DATABASE_FILE', '/data/powermon.db')
 scheduler = AsyncIOScheduler()
 logging.getLogger('apscheduler').setLevel(logging.WARNING)
 
-report = Reporter(ha_core_api_url, headers, scheduler, database )
+report = Reporter(ha_core_api_url, headers, scheduler, database, local_timezone)
 
 
 async def hello_world(request):
