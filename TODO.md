@@ -2,13 +2,11 @@
 
 This is a list where I document simple tasks that are easy to pick up and get going:
 
-1. Correctly expose the data to HA
-2. Improve legend on x-axis of graphs
+1. Improve legend on x-axis of graphs
 
 # Doing
 
-1. ~~Calculate 15 minutes power usage, display it~~ and expose as new sensor to HA
-2. ~~Calculate peak power usage per month, display it~~ and expose as new sensor to HA
+1. Find a way to access the database for development purposes (probably requires enabling dev SSH access)
 
 References:
 * https://docs.python.org/3/library/sqlite3.html#sqlite3-tutorial
@@ -22,4 +20,3 @@ Bigger tasks that need to be split in smaller items:
 1. When restarting HA, it looks like the add-on tries to connect to the websocket too early. Some retry mechanism needs to be added.
 2. Add logo and favicon
 3. Package as a proper add-on
-4. Find a way to access the database for development purposes (probably requires enabling dev SSH access)

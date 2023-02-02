@@ -1,13 +1,12 @@
 import logging
 import os
-import random
 from datetime import datetime, timedelta
 
 import aiohttp
 from apscheduler.schedulers.base import BaseScheduler
 
 from powermon.database import PowermonDatabase
-from powermon.utils import round_down_quarter, beginning_of_month
+from powermon.utils import round_down_quarter
 
 
 class Reporter:
@@ -18,7 +17,7 @@ class Reporter:
         self.database = database
         self.local_timezone = local_timezone
 
-        self.scheduler.add_job(self.send_quarter_average_update, 'cron', second='*/15', minute='1,16,31,46')
+        self.scheduler.add_job(self.send_quarter_average_update, 'cron', minute='1,16,31,46')
         self.scheduler.add_job(self.send_month_peak_update, 'cron', day='1', hour='0', minute='1', second='0')
 
         self.shared_attribute = {"unit_of_measurement": "W",
@@ -36,9 +35,10 @@ class Reporter:
         logging.info('Sending quarter average to HA.')
         previous_quarter = round_down_quarter(datetime.now()) - timedelta(minutes=15)
         power_averages = self.database.get_power_averages(previous_quarter, previous_quarter + timedelta(minutes=5))
-        await self.send_value_to_ha(self.power_average_out,
-                                    power_averages[0].power,
-                                    'Power Average of Previous 15 Minutes')
+        if len(power_averages) != 0:
+            await self.send_value_to_ha(self.power_average_out,
+                                        power_averages[0].power,
+                                        'Power Average of Previous 15 Minutes')
 
     async def send_month_peak_update(self):
         logging.info('Sending month peak to HA.')
@@ -49,9 +49,10 @@ class Reporter:
                                   day=1,
                                   tzinfo=self.local_timezone)
         power_peaks = self.database.get_month_peaks(previous_month, previous_month + timedelta(days=1))
-        await self.send_value_to_ha(self.power_peak_out,
-                                    power_peaks[0].power,
-                                    'Power Peak of Previous Month')
+        if len(power_peaks) != 0:
+            await self.send_value_to_ha(self.power_peak_out,
+                                        power_peaks[0].power,
+                                        'Power Peak of Previous Month')
 
     async def send_value_to_ha(self, sensor: str, value: float, friendly_name):
         async with aiohttp.ClientSession(headers=self.headers) as session:
