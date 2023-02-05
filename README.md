@@ -58,3 +58,38 @@ Home Assistant sets the BUILD_FROM environment variable when building the Docker
    docker build -t powermon:local --build-arg BUILD_FROM="homeassistant/amd64-base:latest" .
    docker run --rm -p 8099:8099 --env-file powermon-backend/.env --name powermon powermon:local
  
+### Accessing the database on Home Assistant
+
+The database is stored in `/data/powermon.db` on the Home Assistant installation. However this file is inside the
+Powermon container, which is not easily accessible.
+
+One option is to make a backup of the add-on and extract the database file from the backup. This is not very convenient
+and takes quite a bit of time. However, it is always available and does not require specific permissions.
+
+Another option is to enter the container and access the database directly. This can only be done using an SSH connection
+to the Home Assistant Operating System. This does not work through an SSH add-on, but via the 'debug' SSH connection:
+https://developers.home-assistant.io/docs/operating-system/debugging/
+
+When this is setup, the easiest procedure is to:
+
+1. Add the remote host to your SSH config file (usually `~/.ssh/config`):
+   ```
+   Host haroot
+       HostName homeassistant.local
+       User root
+       Port 22222
+   ```
+
+2. Create a Docker context for the remote host:
+   ```
+   docker context create haroot --docker "host=ssh://haroot"
+   ```
+
+3. Copy the file using the context:
+   ```
+   docker --context haroot cp addon_local_powermon:/data/powermon.db ./powermon_remote.db
+   ```
+
+If you want to make changes to the database, you can use the above command to copy in the other direction.
+However, be careful since the addon is probably running and may have already changed the database.
+
