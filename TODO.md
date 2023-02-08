@@ -2,7 +2,7 @@
 
 This is a list where I document simple tasks that are easy to pick up and get going:
 
-1. Debug issue with missing HA sensors
+1. Debug issue with missing HA sensors -> it looks like this is working now
 2. Improve legend on x-axis of graphs
 
 # Doing

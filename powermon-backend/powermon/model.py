@@ -3,7 +3,7 @@ from enum import Enum
 
 
 class PowerReading:
-    def __init__(self, power, timestamp=datetime.now(), unit_of_measurement='W'):
+    def __init__(self, power, timestamp, unit_of_measurement='W'):
         if isinstance(power, str):
             power = float(power)
         if unit_of_measurement == 'kW':
