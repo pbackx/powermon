@@ -2,8 +2,9 @@
 
 This is a list where I document simple tasks that are easy to pick up and get going:
 
-1. When restarting HA, it looks like the add-on tries to connect to the websocket too early. Some retry mechanism needs to be added.
-2. Reconnect to HA websocket when connection is lost
+1. Round numbers to at most 2 decimals and remove dot as thousands separator
+2. When restarting HA, it looks like the add-on tries to connect to the websocket too early. Some retry mechanism needs to be added.
+3. Reconnect to HA websocket when connection is lost
 
 # Doing
 
