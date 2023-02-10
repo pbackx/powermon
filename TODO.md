@@ -2,8 +2,8 @@
 
 This is a list where I document simple tasks that are easy to pick up and get going:
 
-1. Debug issue with missing HA sensors -> it looks like this is working now
-2. Improve legend on x-axis of graphs
+1. When restarting HA, it looks like the add-on tries to connect to the websocket too early. Some retry mechanism needs to be added.
+2. Reconnect to HA websocket when connection is lost
 
 # Doing
 
@@ -16,7 +16,7 @@ References:
 
 Bigger tasks that need to be split in smaller items:
 
-1. When restarting HA, it looks like the add-on tries to connect to the websocket too early. Some retry mechanism needs to be added.
-2. Add logo and favicon
-3. Package as a proper add-on
-4. Reconnect to HA websocket when connection is lost
+1. Add logo and favicon
+2. Add "dummy" section to README
+2. Package as a proper add-on
+3. Use the VREG simulator to give a better estimate of peak impact.
